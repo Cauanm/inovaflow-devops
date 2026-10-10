@@ -1,0 +1,80 @@
+services:
+
+  mongodb:
+    image: mongo:7.0
+    container_name: inovaflow-mongodb
+
+    restart: unless-stopped
+
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: inovaflow_db
+
+    ports:
+      - "27018:27017"
+
+    volumes:
+      - mongodb_data:/data/db
+
+    networks:
+      - inovaflow-network
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "--username",
+          "${MONGO_ROOT_USERNAME}",
+          "--password",
+          "${MONGO_ROOT_PASSWORD}",
+          "--authenticationDatabase",
+          "admin",
+          "--eval",
+          "db.adminCommand('ping').ok"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: inovaflow-backend:local
+    container_name: inovaflow-backend
+
+    restart: unless-stopped
+
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+
+    environment:
+      SERVER_PORT: 8080
+
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/inovaflow_db?authSource=admin
+
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.6-flash}
+
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+    networks:
+      - inovaflow-network
+
+
+volumes:
+  mongodb_data:
+
+
+networks:
+  inovaflow-network:
+    driver: bridge

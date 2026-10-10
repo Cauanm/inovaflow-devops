@@ -1,0 +1,13 @@
+# Porta da aplicação
+SERVER_PORT=8080
+
+# MongoDB
+MONGO_ROOT_USERNAME=inovaflow_admin
+MONGO_ROOT_PASSWORD=troque_esta_senha
+
+# Gemini
+GEMINI_API_KEY=${GEMINI_API_KEY:}
+GEMINI_MODEL=gemini-3.6-flash
+
+# Utilizada quando a aplicação roda fora do Docker
+MONGODB_URI=mongodb://localhost:27017/inovaflow_db
