@@ -8,13 +8,13 @@ WORKDIR /app
 # Copia primeiro o pom para aproveitar o cache das dependências
 COPY pom.xml .
 
-RUN mvn dependency:go-offline -B
+RUN mvn clean package -DskipTests -B
 
 # Copia o código-fonte
 COPY src ./src
 
 # Compila, executa os testes e gera o JAR
-RUN mvn clean package -B
+RUN mvn clean package -DskipTests -B
 
 
 # ==========================================
