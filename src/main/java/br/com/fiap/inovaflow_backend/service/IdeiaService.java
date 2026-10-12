@@ -3,6 +3,9 @@ package br.com.fiap.inovaflow_backend.service;
 import br.com.fiap.inovaflow_backend.dto.IdeiaRequest;
 import br.com.fiap.inovaflow_backend.dto.IdeiaResponse;
 import br.com.fiap.inovaflow_backend.dto.PriorizarIdeiaRequest;
+import br.com.fiap.inovaflow_backend.exception.AcessoNegadoException;
+import br.com.fiap.inovaflow_backend.exception.RecursoNaoEncontradoException;
+import br.com.fiap.inovaflow_backend.exception.RegraNegocioException;
 import br.com.fiap.inovaflow_backend.model.*;
 import br.com.fiap.inovaflow_backend.repository.EstrategiaRepository;
 import br.com.fiap.inovaflow_backend.repository.IdeiaRepository;
@@ -19,10 +22,15 @@ public class IdeiaService {
     private final IdeiaRepository ideiaRepository;
     private final EstrategiaRepository estrategiaRepository;
 
-    public IdeiaResponse criar(IdeiaRequest request, Usuario operador) {
+    public IdeiaResponse criar(
+            IdeiaRequest request,
+            Usuario operador
+    ) {
+
         validarEstrategia(request.estrategiaId());
 
         Ideia ideia = new Ideia();
+
         ideia.setTitulo(request.titulo());
         ideia.setDescricao(request.descricao());
         ideia.setCategoria(request.categoria());
@@ -43,39 +51,65 @@ public class IdeiaService {
     }
 
     public List<IdeiaResponse> listarTodas() {
+
         return ideiaRepository.findAll()
                 .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
-    public List<IdeiaResponse> listarMinhas(Usuario operador) {
-        return ideiaRepository.findByOperadorId(operador.getId())
+    public List<IdeiaResponse> listarMinhas(
+            Usuario operador
+    ) {
+
+        return ideiaRepository.findByOperadorId(
+                        operador.getId()
+                )
                 .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
-    public IdeiaResponse buscarPorId(String id, Usuario usuario) {
+    public IdeiaResponse buscarPorId(
+            String id,
+            Usuario usuario
+    ) {
+
         Ideia ideia = buscarIdeia(id);
 
         if (usuario.getPerfil() == PerfilUsuario.OPERADOR &&
                 !ideia.getOperadorId().equals(usuario.getId())) {
-            throw new RuntimeException("Você não tem permissão para consultar esta ideia.");
+
+            throw new AcessoNegadoException(
+                    "Você não tem permissão para consultar esta ideia."
+            );
         }
 
         return toResponse(ideia);
     }
 
-    public IdeiaResponse atualizar(String id, IdeiaRequest request, Usuario operador) {
+    public IdeiaResponse atualizar(
+            String id,
+            IdeiaRequest request,
+            Usuario operador
+    ) {
+
         Ideia ideia = buscarIdeia(id);
 
-        if (!ideia.getOperadorId().equals(operador.getId())) {
-            throw new RuntimeException("Você só pode editar suas próprias ideias.");
+        if (!ideia.getOperadorId().equals(
+                operador.getId()
+        )) {
+
+            throw new AcessoNegadoException(
+                    "Você só pode editar suas próprias ideias."
+            );
         }
 
         if (ideia.getStatus() != StatusIdeia.AGUARDANDO) {
-            throw new RuntimeException("Só é possível editar ideias que ainda estão aguardando análise.");
+
+            throw new RegraNegocioException(
+                    "Só é possível editar ideias que ainda estão aguardando análise."
+            );
         }
 
         validarEstrategia(request.estrategiaId());
@@ -86,26 +120,40 @@ public class IdeiaService {
         ideia.setEstrategiaId(request.estrategiaId());
         ideia.setDataAtualizacao(LocalDateTime.now());
 
-        Ideia atualizada = ideiaRepository.save(ideia);
+        Ideia atualizada =
+                ideiaRepository.save(ideia);
 
         return toResponse(atualizada);
     }
 
-    public void deletar(String id, Usuario operador) {
+    public void deletar(
+            String id,
+            Usuario operador
+    ) {
+
         Ideia ideia = buscarIdeia(id);
 
-        if (!ideia.getOperadorId().equals(operador.getId())) {
-            throw new RuntimeException("Você só pode excluir suas próprias ideias.");
+        if (!ideia.getOperadorId().equals(
+                operador.getId()
+        )) {
+
+            throw new AcessoNegadoException(
+                    "Você só pode excluir suas próprias ideias."
+            );
         }
 
         if (ideia.getStatus() != StatusIdeia.AGUARDANDO) {
-            throw new RuntimeException("Só é possível excluir ideias que ainda estão aguardando análise.");
+
+            throw new RegraNegocioException(
+                    "Só é possível excluir ideias que ainda estão aguardando análise."
+            );
         }
 
         ideiaRepository.deleteById(id);
     }
 
     public IdeiaResponse aprovar(String id) {
+
         Ideia ideia = buscarIdeia(id);
 
         ideia.setStatus(StatusIdeia.APROVADA);
@@ -116,11 +164,17 @@ public class IdeiaService {
         return toResponse(salva);
     }
 
-    public IdeiaResponse reprovar(String id, PriorizarIdeiaRequest request) {
+    public IdeiaResponse reprovar(
+            String id,
+            PriorizarIdeiaRequest request
+    ) {
+
         Ideia ideia = buscarIdeia(id);
 
         ideia.setStatus(StatusIdeia.REPROVADA);
-        ideia.setObservacaoGestor(request.observacaoGestor());
+        ideia.setObservacaoGestor(
+                request.observacaoGestor()
+        );
         ideia.setDataAtualizacao(LocalDateTime.now());
 
         Ideia salva = ideiaRepository.save(ideia);
@@ -128,11 +182,26 @@ public class IdeiaService {
         return toResponse(salva);
     }
 
-    public IdeiaResponse priorizar(String id, PriorizarIdeiaRequest request) {
+    public IdeiaResponse priorizar(
+            String id,
+            PriorizarIdeiaRequest request
+    ) {
+
         Ideia ideia = buscarIdeia(id);
 
+        if (request.prioridade() == null) {
+
+            throw new RegraNegocioException(
+                    "A prioridade é obrigatória para priorizar a ideia."
+            );
+        }
+
         ideia.setPrioridade(request.prioridade());
-        ideia.setObservacaoGestor(request.observacaoGestor());
+
+        ideia.setObservacaoGestor(
+                request.observacaoGestor()
+        );
+
         ideia.setDataAtualizacao(LocalDateTime.now());
 
         Ideia salva = ideiaRepository.save(ideia);
@@ -141,21 +210,41 @@ public class IdeiaService {
     }
 
     private Ideia buscarIdeia(String id) {
+
         return ideiaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ideia não encontrada."));
+                .orElseThrow(() ->
+                        new RecursoNaoEncontradoException(
+                                "Ideia não encontrada."
+                        )
+                );
     }
 
-    private void validarEstrategia(String estrategiaId) {
-        if (estrategiaId == null || estrategiaId.isBlank()) {
-            throw new RuntimeException("A ideia precisa estar vinculada a uma estratégia.");
+    private void validarEstrategia(
+            String estrategiaId
+    ) {
+
+        if (estrategiaId == null ||
+                estrategiaId.isBlank()) {
+
+            throw new RegraNegocioException(
+                    "A ideia precisa estar vinculada a uma estratégia."
+            );
         }
 
-        if (!estrategiaRepository.existsById(estrategiaId)) {
-            throw new RuntimeException("Estratégia não encontrada.");
+        if (!estrategiaRepository.existsById(
+                estrategiaId
+        )) {
+
+            throw new RecursoNaoEncontradoException(
+                    "Estratégia não encontrada."
+            );
         }
     }
 
-    private IdeiaResponse toResponse(Ideia ideia) {
+    private IdeiaResponse toResponse(
+            Ideia ideia
+    ) {
+
         return new IdeiaResponse(
                 ideia.getId(),
                 ideia.getTitulo(),
