@@ -2,6 +2,7 @@ package br.com.fiap.inovaflow_backend.service;
 
 import br.com.fiap.inovaflow_backend.dto.DashboardEstrategiaResponse;
 import br.com.fiap.inovaflow_backend.dto.DashboardResumoResponse;
+import br.com.fiap.inovaflow_backend.exception.RecursoNaoEncontradoException;
 import br.com.fiap.inovaflow_backend.model.Projeto;
 import br.com.fiap.inovaflow_backend.repository.EstrategiaRepository;
 import br.com.fiap.inovaflow_backend.repository.ProjetoRepository;
@@ -20,35 +21,42 @@ public class DashboardService {
     private final EstrategiaRepository estrategiaRepository;
 
     public DashboardResumoResponse resumoGeral() {
+
         List<Projeto> projetos = projetoRepository.findAll();
 
         double investimentoTotal = projetos.stream()
-                .mapToDouble(p -> valorOuZero(p.getInvestimento()))
+                .mapToDouble(p ->
+                        valorOuZero(p.getInvestimento()))
                 .sum();
 
         double retornoTotal = projetos.stream()
-                .mapToDouble(p -> valorOuZero(p.getRetornoFinanceiro()))
+                .mapToDouble(p ->
+                        valorOuZero(p.getRetornoFinanceiro()))
                 .sum();
 
         double lucroTotal = projetos.stream()
-                .mapToDouble(p -> valorOuZero(p.getLucroObtido()))
+                .mapToDouble(p ->
+                        valorOuZero(p.getLucroObtido()))
                 .sum();
 
         double roiMedio = projetos.stream()
-                .mapToDouble(p -> valorOuZero(p.getRoi()))
+                .mapToDouble(p ->
+                        valorOuZero(p.getRoi()))
                 .average()
                 .orElse(0.0);
 
         double produtividadeMedia = projetos.stream()
-                .mapToDouble(p -> valorOuZero(p.getAumentoProdutividade()))
+                .mapToDouble(p ->
+                        valorOuZero(p.getAumentoProdutividade()))
                 .average()
                 .orElse(0.0);
 
-        Map<String, Long> projetosPorStatus = projetos.stream()
-                .collect(Collectors.groupingBy(
-                        p -> p.getStatus().name(),
-                        Collectors.counting()
-                ));
+        Map<String, Long> projetosPorStatus =
+                projetos.stream()
+                        .collect(Collectors.groupingBy(
+                                p -> p.getStatus().name(),
+                                Collectors.counting()
+                        ));
 
         return new DashboardResumoResponse(
                 projetos.size(),
@@ -61,32 +69,43 @@ public class DashboardService {
         );
     }
 
-    public DashboardEstrategiaResponse resumoPorEstrategia(String estrategiaId) {
+    public DashboardEstrategiaResponse resumoPorEstrategia(
+            String estrategiaId
+    ) {
+
         if (!estrategiaRepository.existsById(estrategiaId)) {
-            throw new RuntimeException("Estratégia não encontrada.");
+            throw new RecursoNaoEncontradoException(
+                    "Estratégia não encontrada."
+            );
         }
 
-        List<Projeto> projetos = projetoRepository.findByEstrategiaId(estrategiaId);
+        List<Projeto> projetos =
+                projetoRepository.findByEstrategiaId(estrategiaId);
 
         double investimentoTotal = projetos.stream()
-                .mapToDouble(p -> valorOuZero(p.getInvestimento()))
+                .mapToDouble(p ->
+                        valorOuZero(p.getInvestimento()))
                 .sum();
 
         double retornoTotal = projetos.stream()
-                .mapToDouble(p -> valorOuZero(p.getRetornoFinanceiro()))
+                .mapToDouble(p ->
+                        valorOuZero(p.getRetornoFinanceiro()))
                 .sum();
 
         double lucroTotal = projetos.stream()
-                .mapToDouble(p -> valorOuZero(p.getLucroObtido()))
+                .mapToDouble(p ->
+                        valorOuZero(p.getLucroObtido()))
                 .sum();
 
         double roiMedio = projetos.stream()
-                .mapToDouble(p -> valorOuZero(p.getRoi()))
+                .mapToDouble(p ->
+                        valorOuZero(p.getRoi()))
                 .average()
                 .orElse(0.0);
 
         double produtividadeMedia = projetos.stream()
-                .mapToDouble(p -> valorOuZero(p.getAumentoProdutividade()))
+                .mapToDouble(p ->
+                        valorOuZero(p.getAumentoProdutividade()))
                 .average()
                 .orElse(0.0);
 

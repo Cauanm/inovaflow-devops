@@ -4,6 +4,7 @@ import br.com.fiap.inovaflow_backend.dto.IaAnaliseIdeiaResponse;
 import br.com.fiap.inovaflow_backend.dto.IaChatRequest;
 import br.com.fiap.inovaflow_backend.dto.IaChatResponse;
 import br.com.fiap.inovaflow_backend.service.IaService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,13 +19,23 @@ public class IaController {
 
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/chat")
-    public ResponseEntity<IaChatResponse> chat(@RequestBody IaChatRequest request) {
-        return ResponseEntity.ok(iaService.chat(request));
+    public ResponseEntity<IaChatResponse> chat(
+            @Valid @RequestBody IaChatRequest request
+    ) {
+
+        return ResponseEntity.ok(
+                iaService.chat(request)
+        );
     }
 
     @PreAuthorize("hasRole('GESTOR')")
     @PostMapping("/ideias/{id}/analisar")
-    public ResponseEntity<IaAnaliseIdeiaResponse> analisarIdeia(@PathVariable String id) {
-        return ResponseEntity.ok(iaService.analisarIdeia(id));
+    public ResponseEntity<IaAnaliseIdeiaResponse> analisarIdeia(
+            @PathVariable String id
+    ) {
+
+        return ResponseEntity.ok(
+                iaService.analisarIdeia(id)
+        );
     }
 }

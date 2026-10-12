@@ -4,6 +4,8 @@ import br.com.fiap.inovaflow_backend.dto.CadastroRequest;
 import br.com.fiap.inovaflow_backend.dto.LoginRequest;
 import br.com.fiap.inovaflow_backend.dto.LoginResponse;
 import br.com.fiap.inovaflow_backend.dto.UsuarioResponse;
+import br.com.fiap.inovaflow_backend.exception.ConflitoException;
+import br.com.fiap.inovaflow_backend.exception.CredenciaisInvalidasException;
 import br.com.fiap.inovaflow_backend.model.Usuario;
 import br.com.fiap.inovaflow_backend.repository.UsuarioRepository;
 import br.com.fiap.inovaflow_backend.security.JwtService;
@@ -20,11 +22,13 @@ public class UsuarioService {
     private final JwtService jwtService;
 
     public UsuarioResponse cadastrar(CadastroRequest request) {
+
         if (usuarioRepository.existsByEmail(request.email())) {
-            throw new RuntimeException("E-mail já cadastrado.");
+            throw new ConflitoException("E-mail já cadastrado.");
         }
 
         Usuario usuario = new Usuario();
+
         usuario.setNome(request.nome());
         usuario.setEmail(request.email());
         usuario.setSenha(passwordEncoder.encode(request.senha()));
@@ -38,11 +42,21 @@ public class UsuarioService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        Usuario usuario = usuarioRepository.findByEmail(request.email())
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
 
-        if (!passwordEncoder.matches(request.senha(), usuario.getSenha())) {
-            throw new RuntimeException("Senha inválida.");
+        Usuario usuario = usuarioRepository.findByEmail(request.email())
+                .orElseThrow(() ->
+                        new CredenciaisInvalidasException(
+                                "E-mail ou senha inválidos."
+                        )
+                );
+
+        if (!passwordEncoder.matches(
+                request.senha(),
+                usuario.getSenha()
+        )) {
+            throw new CredenciaisInvalidasException(
+                    "E-mail ou senha inválidos."
+            );
         }
 
         String token = jwtService.gerarToken(usuario);
@@ -59,6 +73,7 @@ public class UsuarioService {
     }
 
     private UsuarioResponse toUsuarioResponse(Usuario usuario) {
+
         return new UsuarioResponse(
                 usuario.getId(),
                 usuario.getNome(),

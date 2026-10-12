@@ -1,6 +1,8 @@
 package br.com.fiap.inovaflow_backend.config;
 
 import br.com.fiap.inovaflow_backend.security.JwtAuthenticationFilter;
+import br.com.fiap.inovaflow_backend.security.RestAccessDeniedHandler;
+import br.com.fiap.inovaflow_backend.security.RestAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,28 +23,71 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    private final RestAuthenticationEntryPoint
+            authenticationEntryPoint;
+
+    private final RestAccessDeniedHandler
+            accessDeniedHandler;
+
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
+
         return http
-                .csrf(csrf -> csrf.disable())
+
+                .csrf(csrf ->
+                        csrf.disable()
+                )
+
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
+                        )
                 )
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/debug/**").permitAll()
-                        .requestMatchers("/health").permitAll()
-                        .anyRequest().authenticated()
+
+                .exceptionHandling(exception ->
+                        exception
+                                .authenticationEntryPoint(
+                                        authenticationEntryPoint
+                                )
+                                .accessDeniedHandler(
+                                        accessDeniedHandler
+                                )
                 )
+
+                .authorizeHttpRequests(auth ->
+                        auth
+                                .requestMatchers(
+                                        "/auth/**"
+                                )
+                                .permitAll()
+
+                                .requestMatchers(
+                                        "/debug/**"
+                                )
+                                .permitAll()
+
+                                .requestMatchers(
+                                        "/health"
+                                )
+                                .permitAll()
+
+                                .anyRequest()
+                                .authenticated()
+                )
+
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
                 )
+
                 .build();
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
+
         return new BCryptPasswordEncoder();
     }
 
@@ -50,6 +95,7 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration config
     ) throws Exception {
+
         return config.getAuthenticationManager();
     }
 }
